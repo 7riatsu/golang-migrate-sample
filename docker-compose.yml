@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  migrate:
+    build:
+      context: .
+      dockerfile: migrate.Dockerfile
+    volumes:
+      - ./migrations:/migrations
+    env_file:
+      - .env
+    networks:
+      - app_network
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  app_network:
+
+volumes:
+  mysql_data:
